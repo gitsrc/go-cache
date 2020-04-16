@@ -41,6 +41,7 @@ type cache struct {
 	defaultExpiration time.Duration
 	items             map[string]Item
 	mu                sync.RWMutex
+	maxItemsCount     int
 	onEvicted         func(string, interface{})
 	janitor           *janitor
 }
@@ -1100,7 +1101,7 @@ func runJanitor(c *cache, ci time.Duration) {
 	go j.Run(c)
 }
 
-func newCache(de time.Duration, m map[string]Item) *cache {
+func newCache(de time.Duration, m map[string]Item, maxItemsCount int) *cache {
 	if de == 0 {
 		de = -1
 	}
@@ -1111,8 +1112,8 @@ func newCache(de time.Duration, m map[string]Item) *cache {
 	return c
 }
 
-func newCacheWithJanitor(de time.Duration, ci time.Duration, m map[string]Item) *Cache {
-	c := newCache(de, m)
+func newCacheWithJanitor(de time.Duration, ci time.Duration, m map[string]Item, maxItemsCount int) *Cache {
+	c := newCache(de, m, maxItemsCount)
 	// This trick ensures that the janitor goroutine (which--granted it
 	// was enabled--is running DeleteExpired on c forever) does not keep
 	// the returned C object from being garbage collected. When it is
@@ -1131,9 +1132,9 @@ func newCacheWithJanitor(de time.Duration, ci time.Duration, m map[string]Item) 
 // the items in the cache never expire (by default), and must be deleted
 // manually. If the cleanup interval is less than one, expired items are not
 // deleted from the cache before calling c.DeleteExpired().
-func New(defaultExpiration, cleanupInterval time.Duration) *Cache {
+func New(defaultExpiration, cleanupInterval time.Duration, maxItemsCount int) *Cache {
 	items := make(map[string]Item)
-	return newCacheWithJanitor(defaultExpiration, cleanupInterval, items)
+	return newCacheWithJanitor(defaultExpiration, cleanupInterval, items, maxItemsCount)
 }
 
 // Return a new cache with a given default expiration duration and cleanup
@@ -1157,6 +1158,6 @@ func New(defaultExpiration, cleanupInterval time.Duration) *Cache {
 // gob.Register() the individual types stored in the cache before encoding a
 // map retrieved with c.Items(), and to register those same types before
 // decoding a blob containing an items map.
-func NewFrom(defaultExpiration, cleanupInterval time.Duration, items map[string]Item) *Cache {
-	return newCacheWithJanitor(defaultExpiration, cleanupInterval, items)
+func NewFrom(defaultExpiration, cleanupInterval time.Duration, items map[string]Item, maxItemsCount int) *Cache {
+	return newCacheWithJanitor(defaultExpiration, cleanupInterval, items, maxItemsCount)
 }
