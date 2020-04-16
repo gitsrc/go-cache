@@ -8,6 +8,8 @@ import (
 	"runtime"
 	"sync"
 	"time"
+
+	"errors"
 )
 
 type Item struct {
@@ -32,6 +34,10 @@ const (
 	DefaultExpiration time.Duration = 0
 )
 
+var (
+	maxItemsCountErr = errors.New("reach max items count.")
+)
+
 type Cache struct {
 	*cache
 	// If this is confusing, see the comment at the bottom of New()
@@ -50,6 +56,12 @@ type cache struct {
 // (DefaultExpiration), the cache's default expiration time is used. If it is -1
 // (NoExpiration), the item never expires.
 func (c *cache) Set(k string, x interface{}, d time.Duration) {
+
+	//如果达到了最大元素限制
+	if c.IsReachMaxItemsCount() {
+		return
+	}
+
 	// "Inlining" of set
 	// var e int64
 	// if d == DefaultExpiration {
@@ -89,9 +101,21 @@ func (c *cache) SetDefault(k string, x interface{}) {
 	c.Set(k, x, DefaultExpiration)
 }
 
+//judge is reach max items count
+
+func (c *cache) IsReachMaxItemsCount() bool {
+	return c.ItemCount() > c.maxItemsCount
+}
+
 // Add an item to the cache only if an item doesn't already exist for the given
 // key, or if the existing item has expired. Returns an error otherwise.
 func (c *cache) Add(k string, x interface{}, d time.Duration) error {
+
+	//如果达到了最大限制
+	if c.IsReachMaxItemsCount() {
+		return maxItemsCountErr
+	}
+
 	c.mu.Lock()
 	_, found := c.get(k)
 	if found {
@@ -1107,6 +1131,7 @@ func newCache(de time.Duration, m map[string]Item, maxItemsCount int) *cache {
 	}
 	c := &cache{
 		defaultExpiration: de,
+		maxItemsCount:     maxItemsCount,
 		items:             m,
 	}
 	return c

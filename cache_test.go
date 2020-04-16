@@ -1375,7 +1375,7 @@ func testFillAndSerialize(t *testing.T, tc *Cache) {
 }
 
 func TestFileSerialization(t *testing.T) {
-	tc := New(DefaultExpiration, 0, 100)
+	tc := New(DefaultExpiration, 0, 1000)
 	tc.Add("a", "a", DefaultExpiration)
 	tc.Add("b", "b", DefaultExpiration)
 	f, err := ioutil.TempFile("", "go-cache-cache.dat")
@@ -1383,10 +1383,11 @@ func TestFileSerialization(t *testing.T) {
 		t.Fatal("Couldn't create cache file:", err)
 	}
 	fname := f.Name()
+	t.Log(f.Name())
 	f.Close()
 	tc.SaveFile(fname)
 
-	oc := New(DefaultExpiration, 0, 100)
+	oc := New(DefaultExpiration, 0, 1000)
 	oc.Add("a", "aa", 0) // this should not be overwritten
 	err = oc.LoadFile(fname)
 	if err != nil {
